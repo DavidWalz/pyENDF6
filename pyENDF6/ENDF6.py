@@ -1,0 +1,99 @@
+"""
+Tools to read an ENDF-6 data file.
+
+From https://t2.lanl.gov/nis/endf/intro05.html
+An ENDF-format nuclear data library has an hierarchical structure by tape, material, file, and section, denoted by numerical identifiers.
+
+Tape is a data-file that contains one or more ENDF materials in increasing order by MAT.
+    Each material contains several files in increasing order by MF.
+    Each file contains several sections in increasing order by MT.
+
+MAT labels an the target material as ZZXX, where XX starts from 25 for the lightest common isotope and increases in steps of 3 to allow for isomers.
+    MAT=125   H-1
+    MAT=128   H-2
+    MAT=2625  Fe-54
+
+MF labels an ENDF file to store different types of data:
+    MF=1  descriptive and miscellaneous data,
+    MF=2  resonance parameter data,
+    MF=3  reaction cross sections vs energy,
+    MF=4  angular distributions,
+    MF=5  energy distributions,
+    MF=6  energy-angle distributions,
+    MF=7  thermal scattering data,
+    MF=8  radioactivity data
+    MF=9-10  nuclide production data,
+    MF=12-15  photon production data, and
+    MF=30-36  covariance data.
+
+MT labels an ENDF section, usually used to hold different reactions, e.g.
+    MT=1   total cross section
+    MT=2   elastic scattering
+    MT=3  Total photo-absorption cross section
+    MT=16  (n,2n) reaction
+    MT=18  fission
+    MT=102 radiative capture
+"""
+
+slices = {
+    'MAT' : slice(66,70),
+    'MT'  : slice(70,72),
+    'MF'  : slice(72,75),
+    'line': slice(75,80),
+    'content' : slice(0,66),
+    'data' : (slice(0,11), slice(11,22), slice(22,33), slice(33,44), slice(44,55), slice(55,66))}
+
+def string2float(v):
+    """Convert string to float"""
+    return float( v.replace('+', 'e+').replace('-', 'e-') )
+
+def parse_data(l):
+    """Read first 6*11 characters of a line as floats"""
+    return [string2float(l[s]) for s in slices['data']]
+
+def read_table(lines):
+    """
+    Parse tabulated data in a selection
+    https://t2.lanl.gov/nis/endf/intro07.html
+    https://t2.lanl.gov/nis/endf/intro08.html
+    https://t2.lanl.gov/nis/endf/intro09.html
+    """
+    # header line 1: (100*Z+A), mass in [m_neutron]
+    # [MAT, 3, MT/ ZA, AWR, 0, 0, 0, 0] HEAD
+
+    # header line 2: Q-value and some counts
+    # [MAT, 3, MT/ QM, QI, 0, LR, NR, NP/ EINT/ S(E)] TAB1
+    f = parse_data(lines[1])
+    ni = int(f[4])  # number of interpolation sections
+    np = int(f[5])  # number of data points
+
+    # header line 3: interpolation information
+    # [MAT, 3, 0/ 0.0, 0.0, 0, 0, 0, 0] SEND
+    # 1   y is constant in x (constant, histogram)
+    # 2   y is linear in x (linear-linear)
+    # 3   y is linear in ln(x) (linear-log)
+    # 4   ln(y) is linear in x (log-linear)
+    # 5   ln(y) is linear in ln(x) (log-log)
+    # 6   y obeys a Gamow charged-particle penetrability law
+
+    # data lines
+    x = []
+    y = []
+    for l in lines[3:-1]:
+        f = parse_data(l)
+        x.append(f[0])
+        y.append(f[1])
+        x.append(f[2])
+        y.append(f[3])
+        x.append(f[4])
+        y.append(f[5])
+    return x[0:np], y[0:np]
+
+def find_section(lines, MF=3, MT=3):
+    """Locate and return a certain section"""
+    mtmf = [l[70:75] for l in lines]
+    n = len(mtmf)
+    cmpstr = '%2s%3s' % (MT, MF)       # search string
+    i0 = mtmf.index(cmpstr)            # first occurrence
+    i1 = n - mtmf[::-1].index(cmpstr)  # last occurrence
+    return lines[i0 : i1]
