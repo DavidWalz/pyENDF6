@@ -43,17 +43,20 @@ slices = {
     'content' : slice(0,66),
     'data' : (slice(0,11), slice(11,22), slice(22,33), slice(33,44), slice(44,55), slice(55,66))}
 
-def string2float(v):
-    """Convert string to float"""
-    return float( v.replace('+', 'e+').replace('-', 'e-') )
+def read_float(v):
+    """
+    Convert ENDF6 string to float
+    (the ENDF6 float representation omits the e for exponent and may contain blanks)
+    """
+    return float( v[0]+v[1:].replace(' ', '').replace('+', 'e+').replace('-', 'e-') )
 
-def parse_data(l):
+def read_line(l):
     """Read first 6*11 characters of a line as floats"""
-    return [string2float(l[s]) for s in slices['data']]
+    return [read_float(l[s]) for s in slices['data']]
 
 def read_table(lines):
     """
-    Parse tabulated data in a selection
+    Parse tabulated data in a section
     https://t2.lanl.gov/nis/endf/intro07.html
     https://t2.lanl.gov/nis/endf/intro08.html
     https://t2.lanl.gov/nis/endf/intro09.html
@@ -63,7 +66,7 @@ def read_table(lines):
 
     # header line 2: Q-value and some counts
     # [MAT, 3, MT/ QM, QI, 0, LR, NR, NP/ EINT/ S(E)] TAB1
-    f = parse_data(lines[1])
+    f = read_line(lines[1])
     ni = int(f[4])  # number of interpolation sections
     np = int(f[5])  # number of data points
 
@@ -80,7 +83,7 @@ def read_table(lines):
     x = []
     y = []
     for l in lines[3:-1]:
-        f = parse_data(l)
+        f = read_line(l)
         x.append(f[0])
         y.append(f[1])
         x.append(f[2])
@@ -93,7 +96,25 @@ def find_section(lines, MF=3, MT=3):
     """Locate and return a certain section"""
     mtmf = [l[70:75] for l in lines]
     n = len(mtmf)
-    cmpstr = '%2s%3s' % (MT, MF)       # search string
+    cmpstr = '%2s%3s' % (MF, MT)       # search string
     i0 = mtmf.index(cmpstr)            # first occurrence
     i1 = n - mtmf[::-1].index(cmpstr)  # last occurrence
     return lines[i0 : i1]
+
+def list_MAT(lines):
+    """Reaction target MAT"""
+    s = slices['MAT']
+    MAT = set( [int(l[s]) for l in lines] )
+    return MAT
+
+def list_MF(lines):
+    """Subdivision of MAT"""
+    s = slices['MF']
+    MF = set( [int(l[s]) for l in lines] )
+    return MF
+
+def list_MT(lines):
+    """Subdivision of MF"""
+    s = slices['MT']
+    MT = set( [int(l[s]) for l in lines] )
+    return MT
