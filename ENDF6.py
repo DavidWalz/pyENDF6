@@ -94,27 +94,23 @@ def read_table(lines):
 
 def find_section(lines, MF=3, MT=3):
     """Locate and return a certain section"""
-    mtmf = [l[70:75] for l in lines]
-    n = len(mtmf)
+    mfmt = [l[70:75] for l in lines]
+    n = len(mfmt)
     cmpstr = '%2s%3s' % (MF, MT)       # search string
-    i0 = mtmf.index(cmpstr)            # first occurrence
-    i1 = n - mtmf[::-1].index(cmpstr)  # last occurrence
+    i0 = mfmt.index(cmpstr)            # first occurrence
+    i1 = n - mfmt[::-1].index(cmpstr)  # last occurrence
     return lines[i0 : i1]
 
-def list_MAT(lines):
-    """Reaction target MAT"""
-    s = slices['MAT']
-    MAT = set( [int(l[s]) for l in lines] )
-    return MAT
+def list_content(lines):
+    """Return set of unique tuples (MAT, MF, MT)"""
+    s0 = slices['MAT']
+    s1 = slices['MF']
+    s2 = slices['MT']
+    content = set( ((int(l[s0]), int(l[s1]), int(l[s2])) for l in lines) )
 
-def list_MF(lines):
-    """Subdivision of MAT"""
-    s = slices['MF']
-    MF = set( [int(l[s]) for l in lines] )
-    return MF
+    # remove section delimiters
+    for c in content.copy():
+        if 0 in c:
+            content.discard(c)
 
-def list_MT(lines):
-    """Subdivision of MF"""
-    s = slices['MT']
-    MT = set( [int(l[s]) for l in lines] )
-    return MT
+    return content
