@@ -37,8 +37,8 @@ MT labels an ENDF section, usually used to hold different reactions, e.g.
 
 slices = {
     'MAT' : slice(66,70),
-    'MT'  : slice(70,72),
-    'MF'  : slice(72,75),
+    'MF'  : slice(70,72),
+    'MT'  : slice(72,75),
     'line': slice(75,80),
     'content' : slice(0,66),
     'data' : (slice(0,11), slice(11,22), slice(22,33), slice(33,44), slice(44,55), slice(55,66))}
