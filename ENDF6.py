@@ -35,6 +35,8 @@ MT labels an ENDF section, usually used to hold different reactions, e.g.
     MT=102 radiative capture
 """
 
+import numpy as np
+
 slices = {
     'MAT' : slice(66,70),
     'MF'  : slice(70,72),
@@ -67,8 +69,8 @@ def read_table(lines):
     # header line 2: Q-value and some counts
     # [MAT, 3, MT/ QM, QI, 0, LR, NR, NP/ EINT/ S(E)] TAB1
     f = read_line(lines[1])
-    ni = int(f[4])  # number of interpolation sections
-    np = int(f[5])  # number of data points
+    nS = int(f[4])  # number of interpolation sections
+    nP = int(f[5])  # number of data points
 
     # header line 3: interpolation information
     # [MAT, 3, 0/ 0.0, 0.0, 0, 0, 0, 0] SEND
@@ -90,15 +92,24 @@ def read_table(lines):
         y.append(f[3])
         x.append(f[4])
         y.append(f[5])
-    return x[0:np], y[0:np]
+    return np.array(x[0:nP]), np.array(y[0:nP])
+
+def find_file(lines, MF=1):
+    """Locate and return a certain section"""
+    v = [l[slices['MF']] for l in lines]
+    n = len(v)
+    cmpstr = '%2s' % MF       # search string
+    i0 = v.index(cmpstr)            # first occurrence
+    i1 = n - v[::-1].index(cmpstr)  # last occurrence
+    return lines[i0 : i1]
 
 def find_section(lines, MF=3, MT=3):
     """Locate and return a certain section"""
-    mfmt = [l[70:75] for l in lines]
-    n = len(mfmt)
+    v = [l[70:75] for l in lines]
+    n = len(v)
     cmpstr = '%2s%3s' % (MF, MT)       # search string
-    i0 = mfmt.index(cmpstr)            # first occurrence
-    i1 = n - mfmt[::-1].index(cmpstr)  # last occurrence
+    i0 = v.index(cmpstr)            # first occurrence
+    i1 = n - v[::-1].index(cmpstr)  # last occurrence
     return lines[i0 : i1]
 
 def list_content(lines):
@@ -112,5 +123,4 @@ def list_content(lines):
     for c in content.copy():
         if 0 in c:
             content.discard(c)
-
     return content
