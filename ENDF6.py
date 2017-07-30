@@ -50,7 +50,11 @@ def read_float(v):
     Convert ENDF6 string to float
     (the ENDF6 float representation omits the e for exponent and may contain blanks)
     """
-    return float( v[0]+v[1:].replace(' ', '').replace('+', 'e+').replace('-', 'e-') )
+    try:
+        number = float(v[0]+v[1:].replace(' ', ''))
+    except ValueError:
+        number = float( v[0]+v[1:].replace(' ', '').replace('+', 'e+').replace('-', 'e-') )
+    return number
 
 def read_line(l):
     """Read first 6*11 characters of a line as floats"""
