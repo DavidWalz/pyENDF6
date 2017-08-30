@@ -50,13 +50,14 @@ slices = {
 def read_float(v):
     """
     Convert ENDF6 string to float
-    (the ENDF6 float representation omits the e for exponent and may contain blanks)
     """
+    if v.strip() == '':
+        return 0.
     try:
-        number = float(v[0] + v[1:].replace(' ', ''))
+        return float(v)
     except ValueError:
-        number = float(v[0] + v[1:].replace(' ', '').replace('+', 'e+').replace('-', 'e-'))
-    return number
+        # ENDF6 may omit the e for exponent
+        return float(v.replace('+', 'e+').replace('-', 'e-'))
 
 
 def read_line(l):
@@ -92,7 +93,7 @@ def read_table(lines):
     # data lines
     x = []
     y = []
-    for l in lines[3:-1]:
+    for l in lines[3:]:
         f = read_line(l)
         x.append(f[0])
         y.append(f[1])
@@ -100,11 +101,11 @@ def read_table(lines):
         y.append(f[3])
         x.append(f[4])
         y.append(f[5])
-    return np.array(x[0:nP]), np.array(y[0:nP])
+    return np.array(x[:nP]), np.array(y[:nP])
 
 
 def find_file(lines, MF=1):
-    """Locate and return a certain section"""
+    """Locate and return a certain file"""
     v = [l[slices['MF']] for l in lines]
     n = len(v)
     cmpstr = '%2s' % MF       # search string
