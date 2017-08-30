@@ -37,13 +37,15 @@ MT labels an ENDF section, usually used to hold different reactions, e.g.
 
 import numpy as np
 
+
 slices = {
-    'MAT' : slice(66,70),
-    'MF'  : slice(70,72),
-    'MT'  : slice(72,75),
-    'line': slice(75,80),
-    'content' : slice(0,66),
-    'data' : (slice(0,11), slice(11,22), slice(22,33), slice(33,44), slice(44,55), slice(55,66))}
+    'MAT': slice(66, 70),
+    'MF': slice(70, 72),
+    'MT': slice(72, 75),
+    'line': slice(75, 80),
+    'content': slice(0, 66),
+    'data': (slice(0, 11), slice(11, 22), slice(22, 33), slice(33, 44), slice(44, 55), slice(55, 66))}
+
 
 def read_float(v):
     """
@@ -51,14 +53,16 @@ def read_float(v):
     (the ENDF6 float representation omits the e for exponent and may contain blanks)
     """
     try:
-        number = float(v[0]+v[1:].replace(' ', ''))
+        number = float(v[0] + v[1:].replace(' ', ''))
     except ValueError:
-        number = float( v[0]+v[1:].replace(' ', '').replace('+', 'e+').replace('-', 'e-') )
+        number = float(v[0] + v[1:].replace(' ', '').replace('+', 'e+').replace('-', 'e-'))
     return number
+
 
 def read_line(l):
     """Read first 6*11 characters of a line as floats"""
     return [read_float(l[s]) for s in slices['data']]
+
 
 def read_table(lines):
     """
@@ -98,6 +102,7 @@ def read_table(lines):
         y.append(f[5])
     return np.array(x[0:nP]), np.array(y[0:nP])
 
+
 def find_file(lines, MF=1):
     """Locate and return a certain section"""
     v = [l[slices['MF']] for l in lines]
@@ -105,7 +110,8 @@ def find_file(lines, MF=1):
     cmpstr = '%2s' % MF       # search string
     i0 = v.index(cmpstr)            # first occurrence
     i1 = n - v[::-1].index(cmpstr)  # last occurrence
-    return lines[i0 : i1]
+    return lines[i0: i1]
+
 
 def find_section(lines, MF=3, MT=3):
     """Locate and return a certain section"""
@@ -114,14 +120,15 @@ def find_section(lines, MF=3, MT=3):
     cmpstr = '%2s%3s' % (MF, MT)       # search string
     i0 = v.index(cmpstr)            # first occurrence
     i1 = n - v[::-1].index(cmpstr)  # last occurrence
-    return lines[i0 : i1]
+    return lines[i0: i1]
+
 
 def list_content(lines):
     """Return set of unique tuples (MAT, MF, MT)"""
     s0 = slices['MAT']
     s1 = slices['MF']
     s2 = slices['MT']
-    content = set( ((int(l[s0]), int(l[s1]), int(l[s2])) for l in lines) )
+    content = set(((int(l[s0]), int(l[s1]), int(l[s2])) for l in lines))
 
     # remove section delimiters
     for c in content.copy():
